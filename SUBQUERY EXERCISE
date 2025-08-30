@@ -1,0 +1,142 @@
+create database subquerydb;
+use subquerydb;
+
+create table users(
+user_id int primary key auto_increment,
+username varchar(50),
+city varchar(50),
+age int
+);
+
+create table products(
+product_id int primary key auto_increment,
+product_name varchar(100),
+price decimal(10, 2)
+);
+
+create table orders(
+order_id int primary key auto_increment,
+user_id int,
+product_id int,
+quantity int,
+order_date date,
+foreign key (user_id) references users(user_id),
+foreign key (product_id) references products(product_id)
+);
+
+
+
+-- Sample data
+INSERT INTO users (username, city, age) VALUES
+('Alice', 'Delhi', 23),
+('Bob', 'Mumbai', 30),
+('Charlie', 'Delhi', 28),
+('David', 'Pune', 22),
+('Eva', 'Mumbai', 35);
+
+INSERT INTO products (product_name, price) VALUES
+('Laptop', 70000),
+('Phone', 30000),
+('Tablet', 20000),
+('Headphones', 5000),
+('Charger', 1500);
+
+INSERT INTO orders (user_id, product_id, quantity, order_date) VALUES
+(1, 1, 1, '2025-01-05'), -- Alice buys Laptop
+(1, 2, 2, '2025-02-10'), -- Alice buys 2 Phones
+(2, 3, 1, '2025-03-15'), -- Bob buys Tablet
+(3, 2, 1, '2025-04-20'), -- Charlie buys Phone
+(4, 5, 3, '2025-05-10'), -- David buys 3 Chargers
+(5, 1, 1, '2025-06-12'); -- Eva buys Laptop
+
+
+-- Understanding Subqueries BASICS
+
+-- 1. Find all users who are from the same city as Alice.
+
+select username, city
+from users
+where city = (select city from users where username = 'Alice');
+
+-- 2. Show each order along with the product’s price fetched using a subquery.
+
+select order_id, (select price from products where products.product_id = orders.product_id) as product_price
+from orders;
+
+-- 3. Find products priced higher than the average product price.
+
+select product_name, price
+from products
+where price > (select avg(price) from products);
+
+-- INTERMEDIATE LEVEL
+
+-- Find users who have placed more than 1 order.
+
+select username
+from users u
+where (select count(*) from orders o where o.user_id = u.user_id) > 1;
+
+
+-- 2. Find the most expensive product each user bought
+
+select username, (select max(p.price) from orders o join products p on o.product_id = p.product_id where o.user_id = u.user_id) as max_product_price
+from users u;
+
+-- 3. Find the most expensive product each user bought
+
+SELECT username
+FROM users u
+WHERE EXISTS (
+SELECT 1
+FROM orders o
+JOIN products p ON o.product_id = p.product_id
+WHERE o.user_id = u.user_id AND p.product_name = 'Laptop'
+);
+
+
+-- ADVANCED LEVEL
+
+-- 1. Second highest product price
+
+SELECT MAX(price) AS second_highest
+FROM products
+WHERE price < (SELECT MAX(price) FROM products);
+
+-- 2. Users who spent more than the average spent by all users
+
+
+SELECT username
+FROM users u
+WHERE (SELECT SUM(o.quantity * p.price)
+FROM orders o
+JOIN products p ON o.product_id = p.product_id
+WHERE o.user_id = u.user_id)
+> (SELECT AVG(total_spent)
+FROM (SELECT SUM(o.quantity * p.price) AS total_spent
+FROM orders o
+JOIN products p ON o.product_id = p.product_id
+GROUP BY o.user_id) AS spending);
+
+
+-- 3. Products that have never been ordered
+
+SELECT product_name
+FROM products p
+WHERE NOT EXISTS (
+SELECT 1 FROM orders o WHERE o.product_id = p.product_id
+);
+
+
+-- 4. Users who ordered only the cheapest product
+
+
+SELECT username
+FROM users u
+WHERE NOT EXISTS (
+SELECT 1 FROM orders o
+JOIN products p ON o.product_id = p.product_id
+WHERE o.user_id = u.user_id
+AND p.price > (SELECT MIN(price) FROM products)
+);
+
