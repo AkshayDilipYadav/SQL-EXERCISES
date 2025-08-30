@@ -50,11 +50,13 @@ INSERT INTO orders (user_id, product_id, quantity, order_date) VALUES
 (5, 1, 1, '2025-06-12'); -- Eva buys Laptop
 
 
--- Understanding Subqueries BASICS
+-- Understanding Subqueries 
+
+----------------------------------------------- BASICS ----------------------------------------------- 
 
 -- 1. Find all users who are from the same city as Alice.
 
-select city from users where username = 'Alice';
+subquery - select city from users where username = 'Alice';
 
 select username, city
 from users
@@ -62,20 +64,20 @@ where city = (select city from users where username = 'Alice');
 
 -- 2. Show each order along with the product’s price fetched using a subquery.
 
-select price from products join orders on products.product_id = orders.order_id;
+subquery -  select price from products join orders on products.product_id = orders.order_id;
 
 select order_id, (select price from products where products.product_id = orders.product_id) as product_price
 from orders;
 
 -- 3. Find products priced higher than the average product price.
 
-select avg(price) from products;
+subquery -  select avg(price) from products;
 
 select product_name, price
 from products
 where price > (select avg(price) from products);
 
--- INTERMEDIATE LEVEL
+-------------------------------------------------  INTERMEDIATE LEVEL ----------------------------------------------- 
 
 -- Find users who have placed more than 1 order.
 
@@ -86,7 +88,10 @@ where (select count(*) from orders o where o.user_id = u.user_id) > 1;
 
 -- 2. Find the most expensive product each user bought
 
-select username, (select max(p.price) from orders o join products p on o.product_id = p.product_id where o.user_id = u.user_id) as max_product_price
+select username, (
+select max(p.price) from orders o join products p on o.product_id = p.product_id 
+where o.user_id = u.user_id
+) as max_product_price
 from users u;
 
 -- 3. Find the most expensive product each user bought
@@ -101,7 +106,7 @@ WHERE o.user_id = u.user_id AND p.product_name = 'Laptop'
 );
 
 
--- ADVANCED LEVEL
+-------------------------------------------------  ADVANCED LEVEL ----------------------------------------------- 
 
 -- 1. Second highest product price
 
@@ -114,11 +119,13 @@ WHERE price < (SELECT MAX(price) FROM products);
 
 SELECT username
 FROM users u
-WHERE (SELECT SUM(o.quantity * p.price)
-FROM orders o
-JOIN products p ON o.product_id = p.product_id
-WHERE o.user_id = u.user_id)
-> (SELECT AVG(total_spent)
+WHERE (
+SELECT SUM(o.quantity * p.price)
+FROM orders o JOIN products p ON o.product_id = p.product_id
+WHERE o.user_id = u.user_id
+)
+> (
+SELECT AVG(total_spent)
 FROM (SELECT SUM(o.quantity * p.price) AS total_spent
 FROM orders o
 JOIN products p ON o.product_id = p.product_id
