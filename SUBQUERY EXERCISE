@@ -54,16 +54,22 @@ INSERT INTO orders (user_id, product_id, quantity, order_date) VALUES
 
 -- 1. Find all users who are from the same city as Alice.
 
+select city from users where username = 'Alice';
+
 select username, city
 from users
 where city = (select city from users where username = 'Alice');
 
 -- 2. Show each order along with the product’s price fetched using a subquery.
 
+select price from products join orders on products.product_id = orders.order_id;
+
 select order_id, (select price from products where products.product_id = orders.product_id) as product_price
 from orders;
 
 -- 3. Find products priced higher than the average product price.
+
+select avg(price) from products;
 
 select product_name, price
 from products
