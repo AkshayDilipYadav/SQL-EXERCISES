@@ -1,0 +1,154 @@
+CREATE DATABASE joins_exercise;
+USE joins_exercise;
+
+-- Users
+CREATE TABLE users (
+user_id INT PRIMARY KEY AUTO_INCREMENT,
+username VARCHAR(50),
+city VARCHAR(50),
+age INT
+);
+
+-- Products
+CREATE TABLE products (
+product_id INT PRIMARY KEY AUTO_INCREMENT,
+product_name VARCHAR(100),
+price DECIMAL(10,2)
+);
+
+-- Orders
+CREATE TABLE orders (
+order_id INT PRIMARY KEY AUTO_INCREMENT,
+user_id INT,
+product_id INT,
+quantity INT,
+order_date DATE,
+FOREIGN KEY (user_id) REFERENCES users(user_id),
+FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- Sample Data
+INSERT INTO users (username, city, age) VALUES
+('Alice', 'Delhi', 23),
+('Bob', 'Mumbai', 30),
+('Charlie', 'Delhi', 28),
+('David', 'Pune', 22),
+('Eva', 'Mumbai', 35);
+
+INSERT INTO products (product_name, price) VALUES
+('Laptop', 70000),
+('Phone', 30000),
+('Tablet', 20000),
+('Headphones', 5000),
+('Charger', 1500);
+
+INSERT INTO orders (user_id, product_id, quantity, order_date) VALUES
+(1, 1, 1, '2025-01-05'),
+(1, 2, 2, '2025-02-10'),
+(2, 3, 1, '2025-03-15'),
+(3, 2, 1, '2025-04-20'),
+(4, 5, 3, '2025-05-10'),
+(5, 1, 1, '2025-06-12');
+
+
+-- BEGINNER
+
+-- 1. Show all orders with usernames and product names. Inner Join (basic)
+
+SELECT o.order_id, u.username, p.product_name, o.quantity
+FROM orders o
+INNER JOIN users u ON o.user_id = u.user_id
+INNER JOIN products p ON o.product_id = p.product_id;
+
+
+-- 2. Left Join Show all users and their orders (if any).
+
+SELECT u.username, o.order_id, o.quantity
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.user_id;
+
+-- 3. Right Join Show all products and the orders (if they exist).
+
+
+SELECT p.product_name, o.order_id, o.quantity
+FROM products p
+RIGHT JOIN orders o ON p.product_id = o.product_id;
+
+
+
+
+-- INTERMEDIATE
+
+
+-- 1. Users who ordered Laptops
+
+
+SELECT u.username, p.product_name
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN products p ON o.product_id = p.product_id
+WHERE p.product_name = 'Laptop';
+
+
+
+-- 2. Total products ordered by each user (using JOIN + GROUP BY)
+
+
+SELECT u.username, COUNT(o.order_id) AS total_orders
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.username;
+
+
+-- 3. Self Join Example (users from the same city)
+
+SELECT u1.username AS user1, u2.username AS user2, u1.city
+FROM users u1
+JOIN users u2 ON u1.city = u2.city AND u1.user_id < u2.user_id;
+
+
+
+
+
+-- ADVANCED
+
+
+-- 1. Simulate FULL OUTER JOIN (since MySQL doesn’t support directly) Show all users and all orders (even if unmatched).
+
+
+SELECT u.username, o.order_id
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.user_id
+UNION
+SELECT u.username, o.order_id
+FROM users u
+RIGHT JOIN orders o ON u.user_id = o.user_id;
+
+
+
+-- 2. Cross Join (every user paired with every product — like all possible shopping options)
+
+SELECT u.username, p.product_name
+FROM users u
+CROSS JOIN products p;
+
+
+-- 3. Find the most expensive product each user has ordered
+
+SELECT u.username, MAX(p.price) AS max_product_price
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN products p ON o.product_id = p.product_id
+GROUP BY u.username;
+
+
+-- 4. Users who ordered all types of products (relational division concept)
+
+
+SELECT u.username
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN products p ON o.product_id = p.product_id
+GROUP BY u.username
+HAVING COUNT(DISTINCT p.product_id) = (SELECT COUNT(*) FROM products);
+
