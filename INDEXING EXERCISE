@@ -1,0 +1,143 @@
+CREATE DATABASE indexing_exercise;
+USE indexing_exercise;
+
+-- Table for demo
+CREATE TABLE employees (
+emp_id INT PRIMARY KEY AUTO_INCREMENT,
+emp_name VARCHAR(100),
+department VARCHAR(50),
+city VARCHAR(50),
+salary DECIMAL(10,2)
+);
+
+-- Insert sample data (small for testing)
+INSERT INTO employees (emp_name, department, city, salary) VALUES
+('Alice', 'HR', 'Delhi', 45000),
+('Bob', 'IT', 'Mumbai', 60000),
+('Charlie', 'Finance', 'Delhi', 55000),
+('David', 'IT', 'Bangalore', 70000),
+('Eva', 'HR', 'Mumbai', 50000),
+('Frank', 'Sales', 'Chennai', 30000),
+('Grace', 'Finance', 'Delhi', 65000),
+('Hank', 'IT', 'Pune', 80000),
+('Ivy', 'Admin', 'Delhi', 40000),
+('Jack', 'Sales', 'Mumbai', 32000);
+
+-- For real testing, you can insert thousands of rows using loops/scripts.
+
+
+-- BEGINNER
+
+-- 1. Create a simple index and check EXPLAIN
+
+-- Check query without index
+EXPLAIN SELECT * FROM employees WHERE department = 'IT';
+
+-- Create index
+CREATE INDEX idx_department ON employees(department);
+
+-- Run again
+EXPLAIN SELECT * FROM employees WHERE department = 'IT';
+
+
+-- 2. Create another index on city and test
+
+
+EXPLAIN SELECT * FROM employees WHERE city = 'Delhi';
+
+CREATE INDEX idx_city ON employees(city);
+
+EXPLAIN SELECT * FROM employees WHERE city = 'Delhi';
+
+-- 3. Drop an index
+
+DROP INDEX idx_city ON employees;
+
+
+
+-- INTERMEDIATE
+
+-- 1. Composite index usage
+
+
+-- Query that filters by department and city
+EXPLAIN SELECT * FROM employees WHERE department = 'IT' AND city = 'Mumbai';
+
+-- Create composite index
+CREATE INDEX idx_dept_city ON employees(department, city);
+
+-- Run again
+EXPLAIN SELECT * FROM employees WHERE department = 'IT' AND city = 'Mumbai';
+
+
+-- 2. Covering index example
+
+-- Create index on (department, salary)
+CREATE INDEX idx_dept_salary ON employees(department, salary);
+
+-- This query is covered by the index (only uses department & salary)
+EXPLAIN SELECT department, salary FROM employees WHERE department = 'Finance';
+
+
+-- 3. Unique Index
+-- Add unique index (emp_name should be unique)
+CREATE UNIQUE INDEX idx_unique_empname ON employees(emp_name);
+
+-- Try inserting duplicate
+INSERT INTO employees (emp_name, department, city, salary) VALUES
+('Alice', 'IT', 'Delhi', 90000); -- Will fail due to unique index
+
+
+
+-- ADVANCED
+
+-- 1. Index Selectivity
+
+-- High selectivity (emp_id is unique)
+EXPLAIN SELECT * FROM employees WHERE emp_id = 3;
+
+-- Low selectivity (department has repeats)
+EXPLAIN SELECT * FROM employees WHERE department = 'HR';
+
+
+-- 2. Index pitfalls
+
+
+
+
+
+-- This WON’T use index
+EXPLAIN SELECT * FROM employees WHERE LOWER(department) = 'it';
+
+-- This WILL use index
+EXPLAIN SELECT * FROM employees WHERE department = 'IT';
+
+
+-- 3. Prefix index (for long strings)
+
+-- Suppose emp_name is long, index first 10 chars
+CREATE INDEX idx_empname_prefix ON employees(emp_name(10));
+
+-- Query that can use prefix index
+EXPLAIN SELECT * FROM employees WHERE emp_name LIKE 'Charlie%';
+
+
+-- 4. Full-Text index (like Google search)
+
+-- Add full-text index
+ALTER TABLE employees ADD FULLTEXT INDEX idx_empname_full (emp_name);
+
+-- Search words inside names
+SELECT * FROM employees WHERE MATCH(emp_name) AGAINST('Alice');
+
+
+-- 5. Profiling query performance
+
+SET profiling = 1;
+
+SELECT * FROM employees WHERE city = 'Delhi';
+SHOW PROFILES;
+
+SELECT * FROM employees WHERE department = 'IT' AND city = 'Mumbai';
+SHOW PROFILES;
+
