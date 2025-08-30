@@ -1,0 +1,155 @@
+
+CREATE DATABASE views_exercise;
+USE views_exercise;
+
+-- Users table
+CREATE TABLE users (
+user_id INT PRIMARY KEY AUTO_INCREMENT,
+username VARCHAR(50),
+city VARCHAR(50),
+age INT
+);
+
+-- Products table
+CREATE TABLE products (
+product_id INT PRIMARY KEY AUTO_INCREMENT,
+product_name VARCHAR(100),
+price DECIMAL(10,2)
+);
+
+-- Orders table
+CREATE TABLE orders (
+order_id INT PRIMARY KEY AUTO_INCREMENT,
+user_id INT,
+product_id INT,
+quantity INT,
+order_date DATE,
+FOREIGN KEY (user_id) REFERENCES users(user_id),
+FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- Sample Data
+INSERT INTO users (username, city, age) VALUES
+('Alice', 'Delhi', 23),
+('Bob', 'Mumbai', 30),
+('Charlie', 'Delhi', 28),
+('David', 'Pune', 22),
+('Eva', 'Mumbai', 35);
+
+INSERT INTO products (product_name, price) VALUES
+('Laptop', 70000),
+('Phone', 30000),
+('Tablet', 20000),
+('Headphones', 5000),
+('Charger', 1500);
+
+INSERT INTO orders (user_id, product_id, quantity, order_date) VALUES
+(1, 1, 1, '2025-01-05'),
+(1, 2, 2, '2025-02-10'),
+(2, 3, 1, '2025-03-15'),
+(3, 2, 1, '2025-04-20'),
+(4, 5, 3, '2025-05-10'),
+(5, 1, 1, '2025-06-12');
+
+
+-- BASICS
+
+-- 1. Create a view showing all usernames and their cities.
+
+CREATE VIEW user_cities AS
+SELECT username, city FROM users;
+
+SELECT * FROM user_cities;
+
+-- 2. Create a view showing all users from "Delhi".
+
+CREATE VIEW delhi_users AS
+SELECT * FROM users WHERE city = 'Delhi';
+
+SELECT * FROM delhi_users;
+
+-- 3. Drop a view
+
+DROP VIEW delhi_users;
+
+
+
+-- INTERMEDIATE
+
+-- 1. Create a view to display each order with the username and product name.
+
+CREATE VIEW order_details AS
+SELECT o.order_id, u.username, p.product_name, o.quantity, o.order_date
+FROM orders o
+JOIN users u ON o.user_id = u.user_id
+JOIN products p ON o.product_id = p.product_id;
+
+SELECT * FROM order_details;
+
+-- 2. Create a view to show the total amount spent per user.
+
+
+CREATE VIEW user_spending AS
+SELECT u.username,
+SUM(o.quantity * p.price) AS total_spent
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN products p ON o.product_id = p.product_id
+GROUP BY u.username;
+
+SELECT * FROM user_spending;
+
+
+-- 3. Create a view to show only orders of "Laptop".
+
+CREATE VIEW laptop_orders AS
+SELECT u.username, p.product_name, o.quantity, o.order_date
+FROM orders o
+JOIN users u ON o.user_id = u.user_id
+JOIN products p ON o.product_id = p.product_id
+WHERE p.product_name = 'Laptop';
+
+select * from laptop_orders;
+
+
+
+-- ADVANCED
+
+-- 1. Create a view on top of another view to show only big spenders (total > 50,000).
+
+CREATE VIEW big_spenders AS
+SELECT * FROM user_spending
+WHERE total_spent > 50000;
+
+SELECT * FROM big_spenders;
+
+-- 2. Create a view for just usernames and ages (subset of a single table).
+
+CREATE VIEW user_basic AS
+SELECT user_id, username, age FROM users;
+
+select * from user_basic;
+
+UPDATE user_basic SET age = 40 WHERE username = 'Bob';
+
+SELECT * FROM users;
+
+-- 3. Create a view for users from Mumbai, but prevent inserting/updating rows outside Mumbai.
+
+CREATE VIEW mumbai_users AS
+SELECT * FROM users WHERE city = 'Mumbai'
+WITH CHECK OPTION;
+
+-- This will fail
+INSERT INTO mumbai_users (username, city, age) VALUES ('Frank', 'Delhi', 29);
+
+-- 4. Create a view for finance team showing only usernames and spending, but not age or city:
+
+CREATE VIEW finance_view AS
+SELECT u.username, SUM(o.quantity * p.price) AS total_spent
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN products p ON o.product_id = p.product_id
+GROUP BY u.username;
+
+select * from finance_view;
