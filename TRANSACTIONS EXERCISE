@@ -1,0 +1,155 @@
+CREATE DATABASE transactions_exercise;
+USE transactions_exercise;
+
+-- Accounts table
+CREATE TABLE accounts (
+    account_id INT PRIMARY KEY AUTO_INCREMENT,
+    account_holder VARCHAR(100),
+    balance DECIMAL(10,2)
+);
+
+-- Insert sample accounts
+INSERT INTO accounts (account_holder, balance) VALUES
+('Alice', 10000),
+('Bob', 8000),
+('Charlie', 5000),
+('David', 2000),
+('Eva', 12000);
+
+
+-- BEGINNER
+
+SET SQL_SAFE_UPDATES = 0;
+
+-- 1. Simple Transaction with COMMIT
+
+START TRANSACTION;
+
+-- Deduct 2000 from Alice
+UPDATE accounts SET balance = balance - 2000 WHERE account_holder = 'Alice';
+
+-- Add 2000 to Bob
+UPDATE accounts SET balance = balance + 2000 WHERE account_holder = 'Bob';
+
+-- Check balances (before commit, still visible in this session)
+SELECT * FROM accounts;
+
+-- Commit changes
+COMMIT;
+
+-- Now balances are permanent
+SELECT * FROM accounts;
+
+
+-- 2. ROLLBACK
+
+
+START TRANSACTION;
+
+-- Deduct 5000 from Charlie
+UPDATE accounts SET balance = balance - 5000 WHERE account_holder = 'Charlie';
+
+-- Add 5000 to David
+UPDATE accounts SET balance = balance + 5000 WHERE account_holder = 'David';
+
+-- Realize a mistake → Rollback
+ROLLBACK;
+
+-- Check balances (no changes applied)
+SELECT * FROM accounts;
+
+
+-- INTERMEDIATE
+
+-- 1. Using savepoints
+
+START TRANSACTION;
+
+-- Deduct 1000 from Alice
+UPDATE accounts SET balance = balance - 1000 WHERE account_holder = 'Alice';
+
+SAVEPOINT step1;
+
+-- Add 1000 to Bob
+UPDATE accounts SET balance = balance + 1000 WHERE account_holder = 'Bob';
+
+SAVEPOINT step2;
+
+-- Add 1000 to Charlie
+UPDATE accounts SET balance = balance + 1000 WHERE account_holder = 'Charlie';
+
+-- Oops, mistake! Rollback only to step2
+ROLLBACK TO step2;
+
+-- Commit (Alice -1000, Bob +1000 applied, Charlie unchanged)
+COMMIT;
+
+SELECT * FROM accounts;
+
+-- 2. Atomic Transfer Simulation
+
+
+
+START TRANSACTION;
+
+-- Withdraw 3000 from Eva
+UPDATE accounts SET balance = balance - 3000 WHERE account_holder = 'Eva';
+
+-- Deposit 3000 into Alice
+UPDATE accounts SET balance = balance + 3000 WHERE account_holder = 'Alice';
+
+-- Check: If Eva’s balance < 0, rollback
+SELECT balance FROM accounts WHERE account_holder = 'Eva';
+
+-- (manually check result, if < 0 then:)
+ROLLBACK;
+
+-- Otherwise
+COMMIT;
+
+
+-- ADVANCED
+
+SELECT @@transaction_isolation;
+
+-- Change isolation level - READ COMMITTED
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+-- Test dirty reads / non-repeatable reads:  Open Session A and Session B (two clients). 
+
+-- In Session A:
+
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 1000 WHERE account_holder = 'Alice';
+-- Don't commit yet
+
+-- in session b:
+
+SELECT * FROM accounts WHERE account_holder = 'Alice';
+
+
+
+-- 2. Deadlock Simulation
+
+-- session A: 
+
+
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 500 WHERE account_holder = 'Alice';
+
+-- session B: 
+
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 500 WHERE account_holder = 'Bob';
+
+
+-- 3. Consistency check with constraints
+
+-- Add a constraint: No negative balance
+ALTER TABLE accounts ADD CONSTRAINT chk_balance CHECK (balance >= 0);
+
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 20000 WHERE account_holder = 'David';
+COMMIT;  -- Will fail, transaction rolled back automatically
+
