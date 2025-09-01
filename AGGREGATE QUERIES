@@ -1,3 +1,9 @@
+| user_id | username | city | age |
+
+| product_id | product_name | price |
+
+| order_id | user_id | product_id | quantity | order_date |
+
 CREATE DATABASE aggregate_exercise;
 USE aggregate_exercise;
 
